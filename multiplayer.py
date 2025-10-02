@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-NUM_SCREENS = 1  # Change this value between 1 and 8
+NUM_SCREENS = 4  # Change this value between 1 and 8
 SOCKET_DIR = "/tmp/mpv_sockets"
 SOCKET_TIMEOUT = 0.5
 SYNC_DELAY = 0.1
