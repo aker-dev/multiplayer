@@ -29,7 +29,7 @@ RETRY_DELAY = 0.5
 
 # Video paths - can specify different videos per screen or use the same one
 videos = [
-    "sources/impossible.webm"
+    "sources/man_destroy_computer.mp4",
 ]
 
 # Validate configuration
@@ -151,16 +151,21 @@ logger.info(f"Launching {NUM_SCREENS} MPV instance(s)...")
 for i, video in enumerate(videos):
     cmd = [
         'mpv',
-        '--loop',
-        '--fullscreen',
-        f'--screen={i}',
+        '--loop',#
+        '--fullscreen',#
+        f'--screen={i}',# Specify screen index
         f'--input-ipc-server={sockets[i]}',
         '--no-audio',  # Disable audio except for one instance
-        '--force-window',
+        '--force-window',# Keep window open even if no video
         '--vo=gpu',  # Use GPU rendering for better performance
         '--hwdec=auto',  # Hardware decoding
-        '--cache=yes',
-        '--demuxer-max-bytes=50M',
+        '--cache=yes',  # Enable caching
+        '--demuxer-max-bytes=50M',# Increase demuxer cache
+        '--no-osc',  # Hide on-screen controller
+        '--no-osd-bar',  # Hide OSD bar (seek bar, volume bar)
+        '--osd-level=0',  # Disable all OSD messages
+        '--cursor-autohide=1000',  # Hide cursor after 1 second of inactivity
+        '--no-input-default-bindings',  # Disable default keyboard/mouse controls
         video
     ]
 
