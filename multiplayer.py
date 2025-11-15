@@ -164,7 +164,7 @@ for i, video in enumerate(videos):
         '--no-osc',  # Hide on-screen controller
         '--no-osd-bar',  # Hide OSD bar (seek bar, volume bar)
         '--osd-level=0',  # Disable all OSD messages
-        '--cursor-autohide=1000',  # Hide cursor after 1 second of inactivity
+        '--cursor-autohide=500',  # Hide cursor immediately
         '--no-input-default-bindings',  # Disable default keyboard/mouse controls
         video
     ]
@@ -301,6 +301,22 @@ if not sync_all():
     logger.error("Initial synchronization failed")
     cleanup_processes()
     sys.exit(1)
+
+# Focus on MPV window to hide cursor immediately
+logger.info("Focusing MPV window...")
+try:
+    applescript = '''
+    tell application "System Events"
+        set mpvProcesses to every process whose name is "mpv"
+        if (count of mpvProcesses) > 0 then
+            set frontmost of first item of mpvProcesses to true
+        end if
+    end tell
+    '''
+    subprocess.run(['osascript', '-e', applescript], check=True, capture_output=True)
+    time.sleep(0.2)  # Small delay to ensure focus is set
+except Exception as e:
+    logger.warning(f"Could not focus MPV window: {e}")
 
 logger.info("=" * 50)
 logger.info(f"✓ {NUM_SCREENS} screen(s) synchronized and ready!")
