@@ -8,6 +8,7 @@ import sys
 import logging
 import shutil
 import signal
+import threading
 from pathlib import Path
 
 # Try to import Quartz for display detection (macOS only)
@@ -32,7 +33,7 @@ CONFIG_FILE = Path(__file__).parent / "config.json"
 # Default configuration
 SOCKET_DIR = "/tmp/mpv_sockets"
 SOCKET_TIMEOUT = 0.5
-SYNC_DELAY = 0.1
+SYNC_DELAY = 0.05  # Reduced from 0.1 - parallel commands are faster
 STARTUP_DELAY = 3
 MAX_RETRIES = 3
 RETRY_DELAY = 0.5
@@ -268,6 +269,26 @@ def send_command(socket_path, command, retries=MAX_RETRIES):
                 time.sleep(RETRY_DELAY)
     return False
 
+def send_command_parallel(sockets_list, command, retries=MAX_RETRIES):
+    """Send the same command to multiple MPV instances in parallel using threading"""
+    results = [False] * len(sockets_list)
+    threads = []
+
+    def send_to_socket(idx, sock_path):
+        results[idx] = send_command(sock_path, command, retries)
+
+    # Create and start threads for parallel execution
+    for idx, sock_path in enumerate(sockets_list):
+        thread = threading.Thread(target=send_to_socket, args=(idx, sock_path))
+        threads.append(thread)
+        thread.start()
+
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
+
+    return results
+
 # Global variable to track processes for cleanup
 processes = []
 
@@ -334,6 +355,7 @@ for i, video in enumerate(videos):
         '--osd-level=0',  # Disable all OSD messages
         '--cursor-autohide=500',  # Hide cursor immediately
         '--no-input-default-bindings',  # Disable default keyboard/mouse controls
+        '--video-sync=display-resample',  # Better A/V sync
         video
     ]
 
@@ -390,7 +412,7 @@ def check_processes_health():
 
 # Precise synchronization function with validation
 def sync_all():
-    """Synchronize all MPV instances with retry logic"""
+    """Synchronize all MPV instances with retry logic using parallel command sending"""
     logger.info("Synchronizing all instances...")
 
     # Check process health before syncing
@@ -399,43 +421,39 @@ def sync_all():
         logger.error(f"Cannot sync: MPV instance(s) {dead} are not running")
         return False
 
-    success_count = 0
-
-    # 1. Pause all instances
-    for i, sock in enumerate(sockets):
-        if send_command(sock, {"command": ["set_property", "pause", True]}):
-            success_count += 1
-        else:
-            logger.warning(f"Failed to pause instance {i}")
+    # 1. Pause all instances in parallel
+    results = send_command_parallel(sockets, {"command": ["set_property", "pause", True]})
+    success_count = sum(results)
 
     if success_count < NUM_SCREENS:
         logger.warning(f"Only paused {success_count}/{NUM_SCREENS} instances")
+        for i, success in enumerate(results):
+            if not success:
+                logger.warning(f"Failed to pause instance {i}")
 
     time.sleep(SYNC_DELAY)
 
-    # 2. Reposition all instances to the beginning (0 seconds)
-    success_count = 0
-    for i, sock in enumerate(sockets):
-        if send_command(sock, {"command": ["seek", 0, "absolute"]}):
-            success_count += 1
-        else:
-            logger.warning(f"Failed to seek instance {i}")
+    # 2. Reposition all instances to the beginning (0 seconds) in parallel
+    results = send_command_parallel(sockets, {"command": ["seek", 0, "absolute"]})
+    success_count = sum(results)
 
     if success_count < NUM_SCREENS:
         logger.warning(f"Only seeked {success_count}/{NUM_SCREENS} instances")
+        for i, success in enumerate(results):
+            if not success:
+                logger.warning(f"Failed to seek instance {i}")
 
     time.sleep(SYNC_DELAY)
 
-    # 3. Resume all instances simultaneously
-    success_count = 0
-    for i, sock in enumerate(sockets):
-        if send_command(sock, {"command": ["set_property", "pause", False]}):
-            success_count += 1
-        else:
-            logger.warning(f"Failed to resume instance {i}")
+    # 3. Resume all instances simultaneously in parallel
+    results = send_command_parallel(sockets, {"command": ["set_property", "pause", False]})
+    success_count = sum(results)
 
     if success_count < NUM_SCREENS:
         logger.warning(f"Only resumed {success_count}/{NUM_SCREENS} instances")
+        for i, success in enumerate(results):
+            if not success:
+                logger.warning(f"Failed to resume instance {i}")
         return False
 
     logger.info("✓ Synchronization completed successfully")
