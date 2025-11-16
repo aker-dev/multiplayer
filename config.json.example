@@ -1,0 +1,8 @@
+{
+  "video_files": {
+    "CENTER": "/path/to/your/center_video.mov",
+    "LEFT": "/path/to/your/left_video.mov",
+    "RIGHT": "/path/to/your/right_video.mov"
+  },
+  "num_screens": 3
+}

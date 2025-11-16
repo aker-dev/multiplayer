@@ -7,12 +7,11 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/opt/homebrew/bin/python3</string>
-        <string>/Users/zak/Documents/GitHub/multiplayer/multiplayer.py</string>
+        <string>/Applications/multiplayer/run_forever.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/zak/Documents/GitHub/multiplayer</string>
+    <string>/Applications/multiplayer</string>
 
     <key>RunAtLoad</key>
     <true/>

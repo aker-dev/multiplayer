@@ -1,0 +1,8 @@
+{
+  "video_files": {
+    "CENTER": "/Users/avl/Movies/ecran_centre.mov",
+    "LEFT": "/Users/avl/Movies/ecran_gauche.mov",
+    "RIGHT": "/Users/avl/Movies/ecran_droite.mov"
+  },
+  "num_screens": 3
+}

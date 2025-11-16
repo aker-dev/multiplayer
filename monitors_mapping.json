@@ -1,0 +1,111 @@
+{
+  "displays": {
+    "0": {
+      "uuid": "7ca8a31d-21a6-52f7-afe3-64c48b39695a",
+      "serial": 21573,
+      "vendor_id": 2513,
+      "model_id": 32514,
+      "display_id": 3,
+      "is_main": true,
+      "is_builtin": false,
+      "position": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    "1": {
+      "uuid": "24d489bf-273f-bbde-6921-8405d75dc55e",
+      "serial": 16843009,
+      "vendor_id": 1715,
+      "model_id": 10088,
+      "display_id": 1,
+      "is_main": false,
+      "is_builtin": false,
+      "position": {
+        "x": -1920,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    "2": {
+      "uuid": "9f6f882b-ad69-55fd-c104-789e89538f76",
+      "serial": 16843009,
+      "vendor_id": 1715,
+      "model_id": 10088,
+      "display_id": 2,
+      "is_main": false,
+      "is_builtin": false,
+      "position": {
+        "x": 1920,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      }
+    }
+  },
+  "video_mapping": {
+    "7ca8a31d-21a6-52f7-afe3-64c48b39695a": {
+      "video_path": "/Users/avl/Movies/ecran_centre.mov",
+      "position_name": "CENTER",
+      "mpv_screen": 0,
+      "display_info": {
+        "uuid": "7ca8a31d-21a6-52f7-afe3-64c48b39695a",
+        "serial": 21573,
+        "vendor_id": 2513,
+        "model_id": 32514,
+        "display_id": 3,
+        "is_main": true,
+        "is_builtin": false,
+        "position": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        }
+      }
+    },
+    "24d489bf-273f-bbde-6921-8405d75dc55e": {
+      "video_path": "/Users/avl/Movies/ecran_gauche.mov",
+      "position_name": "LEFT",
+      "mpv_screen": 1,
+      "display_info": {
+        "uuid": "24d489bf-273f-bbde-6921-8405d75dc55e",
+        "serial": 16843009,
+        "vendor_id": 1715,
+        "model_id": 10088,
+        "display_id": 1,
+        "is_main": false,
+        "is_builtin": false,
+        "position": {
+          "x": -1920,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        }
+      }
+    },
+    "9f6f882b-ad69-55fd-c104-789e89538f76": {
+      "video_path": "/Users/avl/Movies/ecran_droite.mov",
+      "position_name": "RIGHT",
+      "mpv_screen": 2,
+      "display_info": {
+        "uuid": "9f6f882b-ad69-55fd-c104-789e89538f76",
+        "serial": 16843009,
+        "vendor_id": 1715,
+        "model_id": 10088,
+        "display_id": 2,
+        "is_main": false,
+        "is_builtin": false,
+        "position": {
+          "x": 1920,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        }
+      }
+    }
+  }
+}

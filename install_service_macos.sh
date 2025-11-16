@@ -15,6 +15,9 @@ echo ""
 # Create LaunchAgents directory if it doesn't exist
 mkdir -p "$INSTALL_DIR"
 
+# Make run_forever.sh executable
+chmod +x "$SCRIPT_DIR/run_forever.sh"
+
 # Copy plist file
 cp "$SCRIPT_DIR/$PLIST_FILE" "$INSTALL_DIR/"
 
