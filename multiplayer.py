@@ -413,7 +413,8 @@ def check_processes_health():
 # Precise synchronization function with validation
 def sync_all():
     """Synchronize all MPV instances with retry logic using parallel command sending"""
-    logger.info("Synchronizing all instances...")
+    logger.info("=" * 50)
+    logger.info("🔄 STARTING SYNCHRONIZATION")
 
     # Check process health before syncing
     dead = check_processes_health()
@@ -421,7 +422,19 @@ def sync_all():
         logger.error(f"Cannot sync: MPV instance(s) {dead} are not running")
         return False
 
+    # Read positions BEFORE sync
+    logger.info("📊 Positions BEFORE sync:")
+    pre_sync_positions = []
+    for i, sock in enumerate(sockets):
+        pos = get_video_position(sock)
+        pre_sync_positions.append(pos)
+        if pos is not None:
+            logger.info(f"   Instance {i}: {pos:.3f}s")
+        else:
+            logger.warning(f"   Instance {i}: Failed to read position")
+
     # 1. Pause all instances in parallel
+    logger.info("⏸️  Pausing all instances...")
     results = send_command_parallel(sockets, {"command": ["set_property", "pause", True]})
     success_count = sum(results)
 
@@ -434,6 +447,7 @@ def sync_all():
     time.sleep(SYNC_DELAY)
 
     # 2. Reposition all instances to the beginning (0 seconds) in parallel
+    logger.info("⏮️  Seeking all instances to 0s...")
     results = send_command_parallel(sockets, {"command": ["seek", 0, "absolute"]})
     success_count = sum(results)
 
@@ -446,6 +460,7 @@ def sync_all():
     time.sleep(SYNC_DELAY)
 
     # 3. Resume all instances simultaneously in parallel
+    logger.info("▶️  Resuming all instances...")
     results = send_command_parallel(sockets, {"command": ["set_property", "pause", False]})
     success_count = sum(results)
 
@@ -456,7 +471,32 @@ def sync_all():
                 logger.warning(f"Failed to resume instance {i}")
         return False
 
-    logger.info("✓ Synchronization completed successfully")
+    # 4. VERIFY synchronization - read all positions after sync
+    time.sleep(0.2)  # Give instances a moment to stabilize
+    logger.info("✅ Verifying synchronization...")
+    post_sync_positions = []
+    max_drift = 0.0
+    all_synced = True
+
+    for i, sock in enumerate(sockets):
+        pos = get_video_position(sock)
+        post_sync_positions.append(pos)
+        if pos is not None:
+            logger.info(f"   Instance {i}: {pos:.3f}s")
+            if pos > 0.5:  # Should be very close to 0
+                logger.warning(f"   ⚠️  Instance {i} not at start: {pos:.3f}s")
+                all_synced = False
+            max_drift = max(max_drift, pos if pos is not None else 0)
+        else:
+            logger.warning(f"   Instance {i}: Failed to verify position")
+            all_synced = False
+
+    if all_synced and max_drift < 0.5:
+        logger.info(f"✓ All instances synchronized (max drift: {max_drift:.3f}s)")
+    else:
+        logger.warning(f"⚠️  Synchronization may be imperfect (max drift: {max_drift:.3f}s)")
+
+    logger.info("=" * 50)
     return True
 
 # Function to get video position with better error handling
@@ -533,7 +573,8 @@ logger.info("Press Ctrl+C to stop")
 logger.info("=" * 50)
 
 try:
-    last_position = 0
+    # Track last positions for ALL instances
+    last_positions = [0] * NUM_SCREENS
     loop_detected = False
     health_check_interval = 10  # Check process health every 10 iterations
     iteration = 0
@@ -552,33 +593,49 @@ try:
                 cleanup_processes()
                 sys.exit(1)
 
-        # Get the position of the first instance
-        current_position = get_video_position(sockets[0])
+        # Get the position of ALL instances
+        current_positions = []
+        any_loop_detected = False
+        looped_instances = []
 
-        if current_position is not None:
-            failed_position_reads = 0  # Reset counter on successful read
+        for i, sock in enumerate(sockets):
+            current_position = get_video_position(sock)
+            current_positions.append(current_position)
 
-            # Detect if we've looped (current position < previous position)
-            # Use threshold of 1 second to avoid false positives
-            if current_position < last_position - 1:
-                logger.info(f"🔄 Loop detected (pos: {current_position:.1f}s -> resync)")
-                if not sync_all():
-                    logger.error("Re-synchronization failed!")
-                loop_detected = True
+            if current_position is not None:
+                # Detect if this instance has looped (current position < previous position)
+                # Use threshold of 1 second to avoid false positives
+                if current_position < last_positions[i] - 1:
+                    looped_instances.append(i)
+                    any_loop_detected = True
 
-            last_position = current_position
+                last_positions[i] = current_position
 
-            # Display position periodically
-            if int(current_position) % 30 == 0 and not loop_detected:
-                logger.info(f"Playback position: {current_position:.1f}s")
+        # If any instance looped, resync all
+        if any_loop_detected:
+            logger.info(f"🔄 Loop detected on instance(s) {looped_instances}")
+            logger.info(f"   Positions: {[f'{p:.1f}s' if p is not None else 'N/A' for p in current_positions]}")
+            if not sync_all():
+                logger.error("Re-synchronization failed!")
+            loop_detected = True
 
-            loop_detected = False
-        else:
+        # Display positions periodically (every 30 seconds)
+        if not loop_detected and current_positions[0] is not None and int(current_positions[0]) % 30 == 0:
+            positions_str = ", ".join([f"I{i}:{p:.1f}s" if p is not None else f"I{i}:N/A"
+                                       for i, p in enumerate(current_positions)])
+            logger.info(f"📍 Playback positions: {positions_str}")
+
+        # Check for failed reads
+        if all(p is None for p in current_positions):
             failed_position_reads += 1
             if failed_position_reads >= max_failed_reads:
-                logger.error(f"Failed to read position {max_failed_reads} times in a row")
+                logger.error(f"Failed to read position {max_failed_reads} times in a row from all instances")
                 cleanup_processes()
                 sys.exit(1)
+        else:
+            failed_position_reads = 0  # Reset counter if at least one read succeeded
+
+        loop_detected = False
 
 except KeyboardInterrupt:
     # Signal handler will handle cleanup
